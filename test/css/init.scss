@@ -1,0 +1,13 @@
+html {
+	font-size: 12px;
+}
+
+ul li {
+	list-style: none;
+	a:after {
+		position: relative;
+	}
+}
+div {
+	border-radius: 2px;
+}

@@ -1,0 +1,12 @@
+{
+	"name": "测试工程化",
+	"var": {
+		"WWW_SITE_COM": "http://www.unclay.com",
+		"test": "hehe"
+	},
+	"sass": {
+		"from": "init.scss",
+		"to": "style,min.css",
+		"outputStyle": "conpact"
+	}
+}

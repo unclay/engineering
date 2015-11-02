@@ -4,9 +4,11 @@
 		"WWW_SITE_COM": "http://www.unclay.com",
 		"test": "hehe"
 	},
-	"sass": {
-		"from": "init.scss",
-		"to": "style,min.css",
-		"outputStyle": "conpact"
-	}
+	"sass": [{
+		"from": "sass/test_1_1.scss",
+		"to": "test_1_1.css",
+		"outputStyle": {
+			"name": 123
+		}
+	}]
 }

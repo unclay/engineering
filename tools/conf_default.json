@@ -1,9 +1,19 @@
 {
 	"cms": {
-		"url": "",
+		"url": "xxxxxxxxxxxx",
 		"page": {},
-		"block": {
-			"WAP_V2_头部声明": "1111111111"
-		}
+		"block": [
+			"xxxxxxxxxxxx",
+			"xxxxxxxxxxxx",
+			"xxxxxxxxxxxx",
+			"xxxxxxxxxxxx"
+		]
+	},
+	"domain": {
+		"SOURCE_UNCLAY_COM": "http://source.unclay.com",
+		"M_UNCLAY_COM": "http://m.unclay.com",
+		"HUODONG_UNCLAY_COM": "http://huodong.unclay.com",
+		"STATIC_UNCLAY_COM": "http://static.unclay.com",
+		"SOURCE_TEST_COM": "http://source.test.com"
 	}
 }

@@ -5,6 +5,13 @@ var fs = require('fs');
 var sass = require('gulp-sass');
 var rename = require('gulp-rename');
 var request = require('superagent');
+var rjs = require('gulp-requirejs');
+var cmdPack = require('gulp-cmd-pack');
+var requirejsOptimize = require('gulp-requirejs-optimize');
+var seajsCombo = require( 'gulp-seajs-combo' );
+// var gulpSeajs = require('gulp-seajs');
+// 应用程序变量
+var conf = require('./conf.json');
 
 // 变量
 var SOURCE_SEEDIT_COM = 'http://source.office.bzdev.net';
@@ -12,6 +19,17 @@ var M_SEEDIT_COM = 'http://m.bozhong.com';
 var BBS_SEEDIT_COM = 'http://bbs.office.bzdev.net';
 var HUODONG_SEEDIT_COM = 'http://huodong.office.bzdev.net';
 var STATIC_SEEDIT_COM = 'http://static.office.bzdev.net';
+
+
+// 获取gulpfile根目录
+var getRoot = function(){
+	var root = process.env.PWD;
+	// 寻找根目录
+	while( !fs.existsSync( root + '/gulpfile.js' ) ){
+		root = path.join(root, '/..');
+	}
+	return root;
+}
 // block函数
 var B = function(name){
 	try {
@@ -20,7 +38,6 @@ var B = function(name){
 		return '<!-- '+name+' is not exist -->';
 	}
 }
-
 // 获取php语法
 function getPHP(contents){
 	return !!contents.match(/<\?[=||php][^<\?||\?>]*\?>/g) ? contents.match(/<\?[=||php][^<\?||\?>]*\?>/g) : [];
@@ -35,8 +52,46 @@ function getEvent(php){
 }
 
 module.exports = function(gulp){
-	gulp.task('cms-block', function(){
-		
+	gulp.task('cms', function(){
+		var root = getRoot();
+		var cms = conf.cms;
+		// 不存在目录就新增CMS目录
+		if( !fs.existsSync(root+'/cms') ){
+			fs.mkdirSync(root+'/cms');
+		}
+		if( !fs.existsSync(root+'/cms/block') ){
+			fs.mkdirSync(root+'/cms/block');
+		}
+		root = root + '/cms/block';
+		var i = 0;
+		var len = conf.cms.block.length;
+		var cmsUrl = '';
+		// 采用递归方式拉取block
+		var pull = function(){
+			cmsUrl = cms.url + '?type=block&id=' + conf.cms.block[i];
+			request.get( cmsUrl )
+					// .set('accept', 'application/json')
+					.end(function(err, res){
+						if( !!err ){
+							return console.error( conf.cms.block[i] + ' status is ' + err.status);
+						}
+						var name = res.text.match(/\^{[^\^{}]*}\^/gi);
+						if( !name ){
+							console.error(conf.cms.block[i] + '\'s name can not undefined');
+						} else {
+							name = name[0].replace(/[\^{|}\^]/gi, '');
+							fs.writeFile( root + '/' + name + '.html', res.text, 'utf-8', function(err, data){
+								if(!!err) console.log(err);
+								else console.log( conf.cms.block[i] + ' ' + name + ' success');
+							} );
+						}
+						if( i < len-1 ){
+							i++;
+							pull();
+						}
+					});
+		}
+		pull();
 	});
 
 	gulp.task('sass', function(){
@@ -104,21 +159,64 @@ module.exports = function(gulp){
 		}
 	});
 
-	gulp.task('build', function(){
+	// watch sass
+	gulp.task('wsass', function(){
+	    gulp.watch( process.env.INIT_CWD + "/*/*.scss", ["sass"]);
+	});
+
+	// 压缩js
+	gulp.task('moe', function(){
+		console.log( process.env );
 		// 项目配置文件地址
 		var confUrl = path.join( process.env.INIT_CWD, 'package.json' );
 		// 项目配置文件内容
 		var conf = !!fs.readFileSync( confUrl, 'utf-8' ) ? JSON.parse(fs.readFileSync( confUrl, 'utf-8' )) : {};
+		console.log( path.join(process.env.OLDPWD, "/moe/") );
+		// gulp.src( path.join( process.env.INIT_CWD, 'js/main.js' ) )
+		// 	.pipe(seajsCombo({
+		// 		base: process.env.OLDPWD + "/moe/"
+		// 	}))
+		// 	.pipe( rename("index.min.js") )
+		// 	.pipe(gulp.dest( path.join( process.env.INIT_CWD, 'js' ) ));
+		gulp.src( path.join( process.env.INIT_CWD, 'js/main.js' ) )
+			.pipe(gulpSeajs({
+				mode: 2
+			}))
+			.pipe( rename("index.min.js") )
+			.pipe(gulp.dest( path.join( process.env.INIT_CWD, 'js' ) ));
+		// gulp.src( path.join( process.env.INIT_CWD, 'js/index.js' ) )
+		// 	.pipe( requirejsOptimize(function(file){
+		// 		console.log("file start",file);
+		// 		console.log("file end");
+		// 		return {
+		// 			baseUrl: "/"
+		// 		};
+		// 	}) )
+		// 	.pipe( rename('index.min.js') )
+		// 	.pipe( gulp.dest( path.join( process.env.INIT_CWD, 'js' ) ) );
+	});
+
+	gulp.task('build', function(){
+		// 项目配置文件地址
+		var confUrl = path.join( process.env.INIT_CWD, 'package.json' );
+		// 项目配置文件内容
+		var _conf = !!fs.readFileSync( confUrl, 'utf-8' ) ? JSON.parse(fs.readFileSync( confUrl, 'utf-8' )) : {};
 		var dirs = fs.readdirSync( process.env.INIT_CWD );
 		var filename = '';
 		var A_url = ''
 		var A_contents = '';
 		var A_replace = [];
 		var A_event = [];
+		// 系统配置变量
+		if( !!conf.domain ){
+			for(var i in conf.domain){
+				global[i] = conf.domain[i];
+			}
+		}
 		// 对项目配置文件的自定义变量进行初始化(!!有安全问题，仅供内部使用!!)
-		if( !!conf.var ){
-			for(var i in conf.var){
-				global[i] = conf.var[i];
+		if( !!_conf.var ){
+			for(var i in _conf.var){
+				global[i] = _conf.var[i];
 			}
 		}
 		// 对html文件进行编译

@@ -2,7 +2,7 @@
 	"name": "测试工程化",
 	"var": {
 		"WWW_SITE_COM": "http://www.unclay.com",
-		"test": "hehe"
+		"SOURCE_SITE_COM": "http://source.unclay.com"
 	},
 	"sass": [{
 		"from": "sass/test_1_1.scss",

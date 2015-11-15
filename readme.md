@@ -206,7 +206,7 @@ gulp.task('sass', function(){
 	// 提取正确的编译配置
 	if( !!conf.sass && conf.sass.length > 0 ){
 		for( var i=0; i<conf.sass.length; i++ ){
-			if( !!conf.sass[i].from && !!conf.sass[i].to && !!conf.sass[i].outputStyle ){
+			if( !!conf.sass[i].from && !!conf.sass[i].to ){
 				if( conf.sass[i].from.match(/\.scss$/gi) && conf.sass[i].to.match(/\.css$/gi) ){
 					if( i == 0 ) list = []; // 有正确的编译风格时，清除默认配置
 					list.push({
@@ -232,4 +232,67 @@ gulp.task('sass', function(){
 	}
 });
 ````
+watch sass
+````
+gulp.task('wsass', function(){
+    gulp.watch( process.env.INIT_CWD + "/*/*.scss", ["sass"]);
+});
+````
 
+9. 获取gulpfile根目录
+````javascript
+var getRoot = function(){
+	var root = process.env.PWD;
+	// 寻找根目录
+	while( !fs.existsSync( root + '/gulpfile.js' ) ){
+		root = path.join(root, '/..');
+	}
+	return root;
+}
+````
+
+9. 拉取cms
+通过conf.json配置文件进行拉取公共block到跟目录下的/cms/block
+````javascript
+gulp.task('cms', function(){
+	var root = getRoot();
+	var cms = conf.cms;
+	// 不存在目录就新增CMS目录
+	if( !fs.existsSync(root+'/cms') ){
+		fs.mkdirSync(root+'/cms');
+	}
+	if( !fs.existsSync(root+'/cms/block') ){
+		fs.mkdirSync(root+'/cms/block');
+	}
+	root = root + '/cms/block';
+	var i = 0;
+	var len = conf.cms.block.length;
+	var cmsUrl = '';
+	// 采用递归方式拉取block
+	var pull = function(){
+		cmsUrl = cms.url + '?type=block&id=' + conf.cms.block[i];
+		request.get( cmsUrl )
+				// .set('accept', 'application/json')
+				.end(function(err, res){
+					if( !!err ){
+						return console.error( conf.cms.block[i] + ' status is ' + err.status);
+					}
+					var name = res.text.match(/\^{[^\^{}]*}\^/gi);
+					if( !name ){
+						console.error(conf.cms.block[i] + '\'s name can not undefined');
+					} else {
+						name = name[0].replace(/[\^{|}\^]/gi, '');
+						fs.writeFile( root + '/' + name + '.html', res.text, 'utf-8', function(err, data){
+							if(!!err) console.log(err);
+							else console.log( conf.cms.block[i] + ' ' + name + ' success');
+						} );
+					}
+					if( i < len-1 ){
+						i++;
+						pull();
+					}
+				});
+	}
+	pull();
+});
+````

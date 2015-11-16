@@ -22,18 +22,21 @@ var STATIC_SEEDIT_COM = 'http://static.office.bzdev.net';
 
 
 // 获取gulpfile根目录
+
 var getRoot = function(){
-	var root = process.env.PWD;
+	var root = process.env.INIT_CWD;
+	console.log( process.env.PWD , process.cwd(), process.env.INIT_CWD );
 	// 寻找根目录
 	while( !fs.existsSync( root + '/gulpfile.js' ) ){
 		root = path.join(root, '/..');
 	}
 	return root;
 }
+var root = getRoot();
 // block函数
 var B = function(name){
 	try {
-		return fs.readFileSync( process.env.OLDPWD + '/cms/block/' + name + '.html', 'utf-8' );
+		return fs.readFileSync( root + '/cms/block/' + name + '.html', 'utf-8' );
 	} catch(err) {
 		return '<!-- '+name+' is not exist -->';
 	}
@@ -53,7 +56,6 @@ function getEvent(php){
 
 module.exports = function(gulp){
 	gulp.task('cms', function(){
-		var root = getRoot();
 		var cms = conf.cms;
 		// 不存在目录就新增CMS目录
 		if( !fs.existsSync(root+'/cms') ){
@@ -200,7 +202,13 @@ module.exports = function(gulp){
 		// 项目配置文件地址
 		var confUrl = path.join( process.env.INIT_CWD, 'package.json' );
 		// 项目配置文件内容
-		var _conf = !!fs.readFileSync( confUrl, 'utf-8' ) ? JSON.parse(fs.readFileSync( confUrl, 'utf-8' )) : {};
+		var _conf = fs.readFileSync( confUrl, 'utf-8' );
+		try{
+			_conf = !!_conf ? _conf : '{}';
+			_conf = JSON.parse(_conf);
+		} catch(err){
+			console.error('package.json格式不对，' + err);
+		}
 		var dirs = fs.readdirSync( process.env.INIT_CWD );
 		var filename = '';
 		var A_url = ''

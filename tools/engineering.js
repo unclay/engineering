@@ -11,7 +11,7 @@ var requirejsOptimize = require('gulp-requirejs-optimize');
 var seajsCombo = require( 'gulp-seajs-combo' );
 // var gulpSeajs = require('gulp-seajs');
 // 应用程序变量
-var conf = require('./conf.json');
+
 
 // 变量
 var SOURCE_SEEDIT_COM = 'http://source.office.bzdev.net';
@@ -24,15 +24,21 @@ var STATIC_SEEDIT_COM = 'http://static.office.bzdev.net';
 // 获取gulpfile根目录
 
 var getRoot = function(){
-	var root = process.env.INIT_CWD;
-	console.log( process.env.PWD , process.cwd(), process.env.INIT_CWD );
-	// 寻找根目录
-	while( !fs.existsSync( root + '/gulpfile.js' ) ){
-		root = path.join(root, '/..');
+	try{
+		var root = process.env.PWD || process.env.INIT_CWD || process.cwd() || ''; // 兼容多系统，多版本node
+		if( !root ){
+			console.error('应用根目录找不到~');
+			return false;
+		}
+		// 寻找根目录
+		while( !fs.existsSync( root + '/gulpfile.js' ) ){
+			root = path.join(root, '/..');
+		}
+		return root;
+	} catch(err){
+		console.error(err);
 	}
-	return root;
 }
-var root = getRoot();
 // block函数
 var B = function(name){
 	try {
@@ -56,6 +62,8 @@ function getEvent(php){
 
 module.exports = function(gulp){
 	gulp.task('cms', function(){
+		var conf = require('./conf.json');
+		var root = getRoot();
 		var cms = conf.cms;
 		// 不存在目录就新增CMS目录
 		if( !fs.existsSync(root+'/cms') ){
@@ -199,6 +207,7 @@ module.exports = function(gulp){
 	});
 
 	gulp.task('build', function(){
+		var conf = require('./conf.json');
 		// 项目配置文件地址
 		var confUrl = path.join( process.env.INIT_CWD, 'package.json' );
 		// 项目配置文件内容

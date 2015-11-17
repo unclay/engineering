@@ -10,22 +10,13 @@ var cmdPack = require('gulp-cmd-pack');
 var requirejsOptimize = require('gulp-requirejs-optimize');
 var seajsCombo = require( 'gulp-seajs-combo' );
 // var gulpSeajs = require('gulp-seajs');
-// 应用程序变量
 
-
-// 变量
-var SOURCE_SEEDIT_COM = 'http://source.office.bzdev.net';
-var M_SEEDIT_COM = 'http://m.bozhong.com';
-var BBS_SEEDIT_COM = 'http://bbs.office.bzdev.net';
-var HUODONG_SEEDIT_COM = 'http://huodong.office.bzdev.net';
-var STATIC_SEEDIT_COM = 'http://static.office.bzdev.net';
-
-
+// 兼容多系统，多版本node
+var CWD = process.env.PWD || CWD || process.cwd() || '';
 // 获取gulpfile根目录
-
 var getRoot = function(){
 	try{
-		var root = process.env.PWD || process.env.INIT_CWD || process.cwd() || ''; // 兼容多系统，多版本node
+		var root = CWD;
 		if( !root ){
 			console.error('应用根目录找不到~');
 			return false;
@@ -117,9 +108,9 @@ module.exports = function(gulp){
 		var outputStyleTemplate = ['compressed', 'nested', 'expanded', 'compact'];
 		var outputStyle = outputStyleTemplate[0];
 		// 项目样式文件目录
-		var cssDirs = path.join( process.env.INIT_CWD, 'css' );
+		var cssDirs = path.join( CWD, 'css' );
 		// 项目配置文件地址
-		var confUrl = path.join( process.env.INIT_CWD, 'package.json' );
+		var confUrl = path.join( CWD, 'package.json' );
 		// 项目配置文件内容
 		var conf = !!fs.readFileSync( confUrl, 'utf-8' ) ? JSON.parse(fs.readFileSync( confUrl, 'utf-8' )) : {};
 		// 设置默认编译配置
@@ -147,7 +138,7 @@ module.exports = function(gulp){
 					if( conf.sass[i].from.match(/\.scss$/gi) && conf.sass[i].to.match(/\.css$/gi) ){
 						if( i == 0 ) list = []; // 有正确的编译风格时，清除默认配置
 						list.push({
-							'from': path.join(process.env.INIT_CWD, conf.sass[i].from),
+							'from': path.join(CWD, conf.sass[i].from),
 							'to': conf.sass[i].to,
 							'outputStyle': getOutputStyle( conf.sass[i].outputStyle )
 						});
@@ -171,30 +162,30 @@ module.exports = function(gulp){
 
 	// watch sass
 	gulp.task('wsass', function(){
-	    gulp.watch( process.env.INIT_CWD + "/*/*.scss", ["sass"]);
+	    gulp.watch( CWD + "/*/*.scss", ["sass"]);
 	});
 
 	// 压缩js
 	gulp.task('moe', function(){
 		console.log( process.env );
 		// 项目配置文件地址
-		var confUrl = path.join( process.env.INIT_CWD, 'package.json' );
+		var confUrl = path.join( CWD, 'package.json' );
 		// 项目配置文件内容
 		var conf = !!fs.readFileSync( confUrl, 'utf-8' ) ? JSON.parse(fs.readFileSync( confUrl, 'utf-8' )) : {};
 		console.log( path.join(process.env.OLDPWD, "/moe/") );
-		// gulp.src( path.join( process.env.INIT_CWD, 'js/main.js' ) )
+		// gulp.src( path.join( CWD, 'js/main.js' ) )
 		// 	.pipe(seajsCombo({
 		// 		base: process.env.OLDPWD + "/moe/"
 		// 	}))
 		// 	.pipe( rename("index.min.js") )
-		// 	.pipe(gulp.dest( path.join( process.env.INIT_CWD, 'js' ) ));
-		gulp.src( path.join( process.env.INIT_CWD, 'js/main.js' ) )
+		// 	.pipe(gulp.dest( path.join( CWD, 'js' ) ));
+		gulp.src( path.join( CWD, 'js/main.js' ) )
 			.pipe(gulpSeajs({
 				mode: 2
 			}))
 			.pipe( rename("index.min.js") )
-			.pipe(gulp.dest( path.join( process.env.INIT_CWD, 'js' ) ));
-		// gulp.src( path.join( process.env.INIT_CWD, 'js/index.js' ) )
+			.pipe(gulp.dest( path.join( CWD, 'js' ) ));
+		// gulp.src( path.join( CWD, 'js/index.js' ) )
 		// 	.pipe( requirejsOptimize(function(file){
 		// 		console.log("file start",file);
 		// 		console.log("file end");
@@ -203,13 +194,13 @@ module.exports = function(gulp){
 		// 		};
 		// 	}) )
 		// 	.pipe( rename('index.min.js') )
-		// 	.pipe( gulp.dest( path.join( process.env.INIT_CWD, 'js' ) ) );
+		// 	.pipe( gulp.dest( path.join( CWD, 'js' ) ) );
 	});
 
 	gulp.task('build', function(){
 		var conf = require('./conf.json');
 		// 项目配置文件地址
-		var confUrl = path.join( process.env.INIT_CWD, 'package.json' );
+		var confUrl = path.join( CWD, 'package.json' );
 		// 项目配置文件内容
 		var _conf = fs.readFileSync( confUrl, 'utf-8' );
 		try{
@@ -218,7 +209,7 @@ module.exports = function(gulp){
 		} catch(err){
 			console.error('package.json格式不对，' + err);
 		}
-		var dirs = fs.readdirSync( process.env.INIT_CWD );
+		var dirs = fs.readdirSync( CWD );
 		var filename = '';
 		var A_url = ''
 		var A_contents = '';
@@ -241,7 +232,7 @@ module.exports = function(gulp){
 			filename = dirs[i].match(/^_.*\.html$/);
 			if( !!filename ){
 				// _html文件地址
-				A_url = path.join(process.env.INIT_CWD, filename[0]);
+				A_url = path.join(CWD, filename[0]);
 				// _html内容
 				A_contents = fs.readFileSync( A_url, 'utf-8' );
 				// 需要编译的php
@@ -263,14 +254,14 @@ module.exports = function(gulp){
 	});
 
 	gulp.task('wbuild', function(){
-		var dirs = fs.readdirSync( process.env.INIT_CWD );
+		var dirs = fs.readdirSync( CWD );
 		var filename = '';
 		var watchArray = [];
 		// 获取项目根目录下的所有html文件
 		for(var i=0; i<dirs.length; i++){
 			filename = dirs[i].match(/^_.*\.html$/);
 			if( !!filename ){
-				watchArray.push( path.join(process.env.INIT_CWD, filename[0]) );
+				watchArray.push( path.join(CWD, filename[0]) );
 			}
 		}
 		filename = null;

@@ -6,9 +6,12 @@
 	},
 	"sass": [{
 		"from": "sass/test_1_1.scss",
-		"to": "test_1_1.css",
-		"outputStyle": {
-			"name": 123
+		"to": "style.css",
+		"outputStyle": 3
+	}],
+	"css": {
+		"options": {
+			"keepBreaks": true
 		}
-	}]
+	}
 }

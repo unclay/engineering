@@ -251,48 +251,110 @@ var getRoot = function(){
 }
 ````
 
-9. 拉取cms
+10. 拉取cms
 通过conf.json配置文件进行拉取公共block到跟目录下的/cms/block
 ````javascript
-gulp.task('cms', function(){
-	var root = getRoot();
-	var cms = conf.cms;
-	// 不存在目录就新增CMS目录
-	if( !fs.existsSync(root+'/cms') ){
-		fs.mkdirSync(root+'/cms');
+gulp.task('sass', function(){
+	/* 编译风格模板
+	 *  - compressed：压缩后的css代码, 它是默认值
+	 *  - nested：嵌套缩进的css代码
+	 *  - expanded：没有缩进的、扩展的css代码
+	 *  - compact：简洁格式的css代码
+	 *
+	 * 配置方式： 1. 直接通过以上四种类型字符来配置
+	 *           2. 通过风格模板索引来配置配置
+	 */
+	var outputStyleTemplate = ['compressed', 'nested', 'expanded', 'compact'];
+	var outputStyle = outputStyleTemplate[0];
+	// 项目样式文件目录
+	var cssDirs = path.join( CWD, 'css' );
+	// 项目配置文件地址
+	var confUrl = path.join( CWD, 'package.json' );
+	// 项目配置文件内容
+	var _conf = fs.readFileSync( confUrl, 'utf-8' );
+	try{
+		_conf = !!_conf ? _conf : '{}';
+		_conf = JSON.parse(_conf);
+	} catch(err){
+		console.error('package.json格式不对，' + err);
 	}
-	if( !fs.existsSync(root+'/cms/block') ){
-		fs.mkdirSync(root+'/cms/block');
+	// 设置默认编译配置
+	var list = [{
+		'from': path.join(cssDirs, 'style.scss'),
+		'to': 'style.css',
+		'outputStyle': outputStyleTemplate[0]
+	}];
+	// 对外部编译风格进行校正处理
+	var getOutputStyle = function(outputStyle){
+		if( typeof outputStyle === 'number' ){
+			outputStyle = outputStyleTemplate[ outputStyle ] || outputStyleTemplate[0];
+		} else if( typeof outputStyle === 'string' && !!outputStyle.match( new RegExp('^' + outputStyleTemplate.join('|') + '$', 'gi') ) ){
+			outputStyle = outputStyle;
+		} else {
+			console.warn('[warn] outputStyle("'+ outputStyle +'") value must be a number or string!');
+			outputStyle = outputStyleTemplate[0];
+		}
+		return outputStyle;
 	}
-	root = root + '/cms/block';
-	var i = 0;
-	var len = conf.cms.block.length;
-	var cmsUrl = '';
-	// 采用递归方式拉取block
-	var pull = function(){
-		cmsUrl = cms.url + '?type=block&id=' + conf.cms.block[i];
-		request.get( cmsUrl )
-				// .set('accept', 'application/json')
-				.end(function(err, res){
-					if( !!err ){
-						return console.error( conf.cms.block[i] + ' status is ' + err.status);
-					}
-					var name = res.text.match(/\^{[^\^{}]*}\^/gi);
-					if( !name ){
-						console.error(conf.cms.block[i] + '\'s name can not undefined');
-					} else {
-						name = name[0].replace(/[\^{|}\^]/gi, '');
-						fs.writeFile( root + '/' + name + '.html', res.text, 'utf-8', function(err, data){
-							if(!!err) console.log(err);
-							else console.log( conf.cms.block[i] + ' ' + name + ' success');
-						} );
-					}
-					if( i < len-1 ){
-						i++;
-						pull();
-					}
-				});
+	// 提取正确的编译配置
+	if( !!_conf.sass && _conf.sass.length > 0 ){
+		for( var i=0; i<_conf.sass.length; i++ ){
+			if( !!_conf.sass[i].from && !!_conf.sass[i].to && !!_conf.sass[i].outputStyle ){
+				if( _conf.sass[i].from.match(/\.scss$/gi) && _conf.sass[i].to.match(/\.css$/gi) ){
+					if( i == 0 ) list = []; // 有正确的编译风格时，清除默认配置
+					list.push({
+						'from': path.join(CWD, _conf.sass[i].from),
+						'to': _conf.sass[i].to,
+						'outputStyle': getOutputStyle( _conf.sass[i].outputStyle )
+					});
+				} else {
+					// 编译源文件和目标文件必须是scss和css
+					console.error('from: ("' + _conf.sass[i].from + '") must be *.scss, to: ("' + _conf.sass[i].to + '") must be *.css');
+				}
+			}
+		}
 	}
-	pull();
+	// 多文件编译
+	for( var i=0; i<list.length; i++ ){
+		gulp.src( list[i].from )
+			.pipe(sass({
+                outputStyle: list[i].outputStyle
+            }).on("error", sass.logError))
+            .pipe(rename(list[i].to))
+			.pipe(gulp.dest(cssDirs));
+	}
+});
+````
+
+11. 打包压缩css
+````
+gulp.task('css', function(){
+	// 项目样式文件目录
+	var cssDirs = path.join( CWD, 'css' );
+	// 项目配置文件地址
+	var confUrl = path.join( CWD, 'package.json' );
+	// 项目配置文件内容
+	var _conf = fs.readFileSync( confUrl, 'utf-8' );
+	try{
+		_conf = !!_conf ? _conf : '{}';
+		_conf = JSON.parse(_conf);
+	} catch(err){
+		console.error('package.json格式不对，' + err);
+	}
+	var minConf = {};
+	if( !!_conf.css && !!_conf.css.options ){
+		if( Object.prototype.toString.call(_conf.css.options) !== '[object Object]' ){
+			console.error('package.json.css.options must be Object');
+		} else {
+			minConf = _conf.css.options;
+		}
+	}
+	gulp.src(cssDirs + '/*.css')
+		.pipe(cssmin(minConf))
+		.pipe(rename('style.min.css'))
+		.pipe(gulp.dest(cssDirs));
+});
+gulp.task('wcss', function(){
+	gulp.watch( CWD + "/css/*.css", ["css"]);
 });
 ````

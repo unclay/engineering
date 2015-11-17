@@ -5,6 +5,14 @@ var fs = require('fs');
 var sass = require('gulp-sass');
 var rename = require('gulp-rename');
 var request = require('superagent');
+var cssmin = require('gulp-minify-css');
+// gulp-minify-css options
+//   advanced: false,//类型：Boolean 默认：true [是否开启高级优化（合并选择器等）]
+//   compatibility: 'ie7',//类型：String 默认：''or'*' [启用兼容模式； 'ie7'：IE7兼容模式，'ie8'：IE8兼容模式，'*'：IE9+兼容模式]
+//   keepBreaks: true//类型：Boolean 默认：false [是否保留换行]
+
+
+// del
 var rjs = require('gulp-requirejs');
 var cmdPack = require('gulp-cmd-pack');
 var requirejsOptimize = require('gulp-requirejs-optimize');
@@ -31,7 +39,7 @@ var getRoot = function(){
 	}
 }
 // block函数
-var B = function(name){
+function B(name){
 	try {
 		return fs.readFileSync( root + '/cms/block/' + name + '.html', 'utf-8' );
 	} catch(err) {
@@ -95,6 +103,37 @@ module.exports = function(gulp){
 		pull();
 	});
 
+	gulp.task('css', function(){
+		// 项目样式文件目录
+		var cssDirs = path.join( CWD, 'css' );
+		// 项目配置文件地址
+		var confUrl = path.join( CWD, 'package.json' );
+		// 项目配置文件内容
+		var _conf = fs.readFileSync( confUrl, 'utf-8' );
+		try{
+			_conf = !!_conf ? _conf : '{}';
+			_conf = JSON.parse(_conf);
+		} catch(err){
+			console.error('package.json格式不对，' + err);
+		}
+		var minConf = {};
+		if( !!_conf.css && !!_conf.css.options ){
+			if( Object.prototype.toString.call(_conf.css.options) !== '[object Object]' ){
+				console.error('package.json.css.options must be Object');
+			} else {
+				minConf = _conf.css.options;
+			}
+		}
+		gulp.src(cssDirs + '/*.css')
+			.pipe(cssmin(minConf))
+			.pipe(rename('style.min.css'))
+			.pipe(gulp.dest(cssDirs));
+	});
+
+	gulp.task('wcss', function(){
+		gulp.watch( CWD + "/css/*.css", ["css"]);
+	});
+
 	gulp.task('sass', function(){
 		/* 编译风格模板
 		 *  - compressed：压缩后的css代码, 它是默认值
@@ -112,7 +151,13 @@ module.exports = function(gulp){
 		// 项目配置文件地址
 		var confUrl = path.join( CWD, 'package.json' );
 		// 项目配置文件内容
-		var conf = !!fs.readFileSync( confUrl, 'utf-8' ) ? JSON.parse(fs.readFileSync( confUrl, 'utf-8' )) : {};
+		var _conf = fs.readFileSync( confUrl, 'utf-8' );
+		try{
+			_conf = !!_conf ? _conf : '{}';
+			_conf = JSON.parse(_conf);
+		} catch(err){
+			console.error('package.json格式不对，' + err);
+		}
 		// 设置默认编译配置
 		var list = [{
 			'from': path.join(cssDirs, 'style.scss'),
@@ -132,19 +177,19 @@ module.exports = function(gulp){
 			return outputStyle;
 		}
 		// 提取正确的编译配置
-		if( !!conf.sass && conf.sass.length > 0 ){
-			for( var i=0; i<conf.sass.length; i++ ){
-				if( !!conf.sass[i].from && !!conf.sass[i].to && !!conf.sass[i].outputStyle ){
-					if( conf.sass[i].from.match(/\.scss$/gi) && conf.sass[i].to.match(/\.css$/gi) ){
+		if( !!_conf.sass && _conf.sass.length > 0 ){
+			for( var i=0; i<_conf.sass.length; i++ ){
+				if( !!_conf.sass[i].from && !!_conf.sass[i].to && !!_conf.sass[i].outputStyle ){
+					if( _conf.sass[i].from.match(/\.scss$/gi) && _conf.sass[i].to.match(/\.css$/gi) ){
 						if( i == 0 ) list = []; // 有正确的编译风格时，清除默认配置
 						list.push({
-							'from': path.join(CWD, conf.sass[i].from),
-							'to': conf.sass[i].to,
-							'outputStyle': getOutputStyle( conf.sass[i].outputStyle )
+							'from': path.join(CWD, _conf.sass[i].from),
+							'to': _conf.sass[i].to,
+							'outputStyle': getOutputStyle( _conf.sass[i].outputStyle )
 						});
 					} else {
 						// 编译源文件和目标文件必须是scss和css
-						console.error('from: ("' + conf.sass[i].from + '") must be *.scss, to: ("' + conf.sass[i].to + '") must be *.css');
+						console.error('from: ("' + _conf.sass[i].from + '") must be *.scss, to: ("' + _conf.sass[i].to + '") must be *.css');
 					}
 				}
 			}

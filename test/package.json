@@ -6,7 +6,7 @@
 	},
 	"sass": [{
 		"from": "sass/test_1_1.scss",
-		"to": "style.css",
+		"to": "css/style.css",
 		"outputStyle": 3
 	}],
 	"css": {

@@ -38,6 +38,7 @@ var getRoot = function(){
 		console.error(err);
 	}
 }
+var root = getRoot();
 // block函数
 function B(name){
 	try {
@@ -161,7 +162,7 @@ module.exports = function(gulp){
 		// 设置默认编译配置
 		var list = [{
 			'from': path.join(cssDirs, 'style.scss'),
-			'to': 'style.css',
+			'to': path.join(cssDirs, 'style.css'),
 			'outputStyle': outputStyleTemplate[0]
 		}];
 		// 对外部编译风格进行校正处理
@@ -183,7 +184,7 @@ module.exports = function(gulp){
 					if( _conf.sass[i].from.match(/\.scss$/gi) && _conf.sass[i].to.match(/\.css$/gi) ){
 						if( i == 0 ) list = []; // 有正确的编译风格时，清除默认配置
 						list.push({
-							'from': path.join(CWD, _conf.sass[i].from),
+							'from': path.join(CWD, path.normalize(_conf.sass[i].from).replace(CWD, '') ),
 							'to': _conf.sass[i].to,
 							'outputStyle': getOutputStyle( _conf.sass[i].outputStyle )
 						});
@@ -312,5 +313,97 @@ module.exports = function(gulp){
 		filename = null;
 		// 监听html文件
 		gulp.watch(watchArray, ["build"]);
+	});
+
+
+	gulp.task('js', function(){
+		function _define(name, dep, fn){
+			if( Object.prototype.toString.call(name) == '[object Function]' ){
+				fn = name;
+				name = '';
+				dep = [];
+			} else if( Object.prototype.toString.call(dep) == '[object Function]' ) {
+				fn = dep;
+				dep = [];
+			}
+			if( dep.length > 0 ){
+				return dep;
+			} else return [];
+		}
+		function getModulePath(module){
+			return fs.readFileSync( path.join(root, 'moe', module) + '.js', 'utf-8' );
+		}
+		function getModules(filepath){
+			var content = fs.readFileSync(filepath, 'utf-8');
+			content = content.match(/require\([^\);]*\)/gi);
+			//return eval( content.replace('define(', '_define(') );
+			var all = [];
+			console.log(341, content );
+			if( !!content ){
+				for( var i=0; i<content.length; i++ ){
+					console.log(344, content[i].replace('require', '_require') );
+					all.concat( eval( content[i].replace('require', '_require')) );
+				}
+				return all
+			} else {
+				return [];
+			}
+		}
+
+		function getModulesByDep(filepath){
+			var content = fs.readFileSync(filepath, 'utf-8');
+			return eval(content.replace(/define/gi, '__defind'));
+		}
+		function _require(module){
+			console.log(353, path.join(root, 'moe', module) + '.js' );
+			return getModules( path.join(root, 'moe', module) + '.js' ) ;
+		}
+		var conf = require('./conf.json');
+		// 项目配置文件地址
+		var confUrl = path.join( CWD, 'package.json' );
+		// 项目配置文件内容
+		var _conf = fs.readFileSync( confUrl, 'utf-8' );
+		try{
+			_conf = !!_conf ? _conf : '{}';
+			_conf = JSON.parse(_conf);
+		} catch(err){
+			console.error('package.json格式不对，' + err);
+		}
+		function getModuless(filepathname){
+			console.log(373, filepathname);
+			var content = path.join(root, 'moe', filepathname) + '.js';
+			console.log( 374, content );
+			content = fs.readFileSync(content, 'utf-8');
+			content = eval(content.replace(/define/gi, '__define'));
+			console.log(378, content);
+			return content;
+		}
+		function __require(filepathname){
+			return filepathname;
+		}
+		function __define(name, dep, fn){
+			console.log(Object.prototype.toString.call(dep) == '[object Array]');
+			if( Object.prototype.toString.call(name) == '[object Array]' ){
+				return name;
+			} else if( Object.prototype.toString.call(dep) == '[object Array]' ) {
+				
+				return dep;
+			} else return [];
+		}
+		var all = [];
+		var mainJs = path.join( CWD, '/js/index.js' );
+		mainJs = fs.readFileSync( mainJs, 'utf-8' );
+		mainJs = mainJs.match(/require\([^\);]*\)/gi);
+		for(var i=0; i<mainJs.length; i++){
+			var name = eval(mainJs[i].replace('require','__require'));
+			all.push( name );
+			all = all.concat( getModuless( name ) );
+		}
+		console.log( all );
+	});
+
+	// watch js
+	gulp.task('wjs', function(){
+	    gulp.watch( CWD + "/js/index.js", ["js"]);
 	});
 }

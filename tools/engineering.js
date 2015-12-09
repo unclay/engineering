@@ -317,47 +317,6 @@ module.exports = function(gulp){
 
 
 	gulp.task('js', function(){
-		function _define(name, dep, fn){
-			if( Object.prototype.toString.call(name) == '[object Function]' ){
-				fn = name;
-				name = '';
-				dep = [];
-			} else if( Object.prototype.toString.call(dep) == '[object Function]' ) {
-				fn = dep;
-				dep = [];
-			}
-			if( dep.length > 0 ){
-				return dep;
-			} else return [];
-		}
-		function getModulePath(module){
-			return fs.readFileSync( path.join(root, 'moe', module) + '.js', 'utf-8' );
-		}
-		function getModules(filepath){
-			var content = fs.readFileSync(filepath, 'utf-8');
-			content = content.match(/require\([^\);]*\)/gi);
-			//return eval( content.replace('define(', '_define(') );
-			var all = [];
-			console.log(341, content );
-			if( !!content ){
-				for( var i=0; i<content.length; i++ ){
-					console.log(344, content[i].replace('require', '_require') );
-					all.concat( eval( content[i].replace('require', '_require')) );
-				}
-				return all
-			} else {
-				return [];
-			}
-		}
-
-		function getModulesByDep(filepath){
-			var content = fs.readFileSync(filepath, 'utf-8');
-			return eval(content.replace(/define/gi, '__defind'));
-		}
-		function _require(module){
-			console.log(353, path.join(root, 'moe', module) + '.js' );
-			return getModules( path.join(root, 'moe', module) + '.js' ) ;
-		}
 		var conf = require('./conf.json');
 		// 项目配置文件地址
 		var confUrl = path.join( CWD, 'package.json' );
@@ -369,35 +328,72 @@ module.exports = function(gulp){
 		} catch(err){
 			console.error('package.json格式不对，' + err);
 		}
-		function getModuless(filepathname){
-			console.log(373, filepathname);
-			var content = path.join(root, 'moe', filepathname) + '.js';
-			console.log( 374, content );
-			content = fs.readFileSync(content, 'utf-8');
-			content = eval(content.replace(/define/gi, '__define'));
-			console.log(378, content);
-			return content;
-		}
-		function __require(filepathname){
-			return filepathname;
-		}
-		function __define(name, dep, fn){
-			console.log(Object.prototype.toString.call(dep) == '[object Array]');
-			if( Object.prototype.toString.call(name) == '[object Array]' ){
-				return name;
-			} else if( Object.prototype.toString.call(dep) == '[object Array]' ) {
-				
-				return dep;
-			} else return [];
-		}
 		var all = [];
 		var mainJs = path.join( CWD, '/js/index.js' );
 		mainJs = fs.readFileSync( mainJs, 'utf-8' );
 		mainJs = mainJs.match(/require\([^\);]*\)/gi);
 		for(var i=0; i<mainJs.length; i++){
-			var name = eval(mainJs[i].replace('require','__require'));
-			all.push( name );
-			all = all.concat( getModuless( name ) );
+			var name = eval(mainJs[i].replace('require','_require'));
+			all = all.concat(name);
+		}
+		function _require(path){
+			return [path].concat( _getModules(path) );
+		}
+		function _getModules(path){
+			try {
+				var path = root + '/moe/' + path + '.js';
+				if( !fs.existsSync(path) ){
+					return [];
+				}
+				var content = fs.readFileSync(path, 'utf-8');
+				var modules = [];
+				var delModules = [];
+				var temp = [];
+				if( !content ){
+					return [];
+				}
+				content = content.split(/define\(/gi);
+				if( content.length <= 0 ){
+					return [];
+				}
+				// console.log( content );
+				for( var i=1; i<content.length; i++ ){
+					if(!content[i]){
+						content.splice(i, 1);
+						i--;
+					} else {
+						// console.log( content[i].substr(0, content[i].lastIndexOf(')') + 1 ) );
+						// console.log( eval('_define(' + content[i]) );
+						console.log( '_define(' + content[i].substr(0, content[i].lastIndexOf(')') + 1 ) );
+						temp = eval('_define(' + content[i].substr(0, content[i].lastIndexOf(')') + 1 ));
+						console.log('368: ', temp.dep );
+						modules = modules.concat( temp.dep );
+						delModules.push( temp.name );
+					}
+				}
+				for( var i=0; i<delModules.length; i++ ){
+					for( var j=0; j<modules.length; j++ ){
+						if( delModules[i] === modules[j] ){
+							modules.splice(j,1);
+							continue;
+						}
+					}
+				}
+				for( var i=0; i<modules.length; i++ ){
+					// console.log( modules[i] );
+					modules = modules.concat( _getModules(modules[i]) );
+				}
+				return modules;
+			} catch(err){
+				console.log('387: ', err);
+			}
+		}
+		function _define(name, dep){
+			console.log('391: ', name, dep);
+			return {
+				name: name,
+				dep: dep
+			}
 		}
 		console.log( all );
 	});

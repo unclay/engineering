@@ -315,7 +315,6 @@ module.exports = function(gulp){
 		gulp.watch(watchArray, ["build"]);
 	});
 
-
 	gulp.task('js', function(){
 		var conf = require('./conf.json');
 		// 项目配置文件地址
@@ -328,13 +327,14 @@ module.exports = function(gulp){
 		} catch(err){
 			console.error('package.json格式不对，' + err);
 		}
-		var all = [];
+		// 最终打包路径数组
+		var allModules = [];
 		var mainJs = path.join( CWD, '/js/index.js' );
 		mainJs = fs.readFileSync( mainJs, 'utf-8' );
 		mainJs = mainJs.match(/require\([^\);]*\)/gi);
 		for(var i=0; i<mainJs.length; i++){
 			var name = eval(mainJs[i].replace('require','_require'));
-			all = all.concat(name);
+			allModules = allModules.concat(name);
 		}
 		function _require(path){
 			return [path].concat( _getModules(path) );
@@ -347,6 +347,7 @@ module.exports = function(gulp){
 				}
 				var content = fs.readFileSync(path, 'utf-8');
 				var modules = [];
+				var subModules = [];
 				var delModules = [];
 				var temp = [];
 				if( !content ){
@@ -359,16 +360,14 @@ module.exports = function(gulp){
 				// console.log( content );
 				for( var i=1; i<content.length; i++ ){
 					if(!content[i]){
-						content.splice(i, 1);
 						i--;
 					} else {
 						// console.log( content[i].substr(0, content[i].lastIndexOf(')') + 1 ) );
 						// console.log( eval('_define(' + content[i]) );
-						console.log( '_define(' + content[i].substr(0, content[i].lastIndexOf(')') + 1 ) );
+						// console.log( '_define(' + content[i].substr(0, content[i].lastIndexOf(')') + 1 ) );
 						temp = eval('_define(' + content[i].substr(0, content[i].lastIndexOf(')') + 1 ));
-						console.log('368: ', temp.dep );
-						modules = modules.concat( temp.dep );
-						delModules.push( temp.name );
+						if( temp.dep.length > 0 ) modules = modules.concat( temp.dep );
+						if( !!temp.name ) delModules.push( temp.name );
 					}
 				}
 				for( var i=0; i<delModules.length; i++ ){
@@ -379,23 +378,25 @@ module.exports = function(gulp){
 						}
 					}
 				}
+				// console.log( path, modules );
+				
 				for( var i=0; i<modules.length; i++ ){
-					// console.log( modules[i] );
-					modules = modules.concat( _getModules(modules[i]) );
+					subModules = subModules.concat( _getModules(modules[i]) );
 				}
+				modules = modules.concat( subModules );
 				return modules;
 			} catch(err){
-				console.log('387: ', err);
+				console.log('_getModules: ', err);
 			}
 		}
 		function _define(name, dep){
-			console.log('391: ', name, dep);
 			return {
 				name: name,
 				dep: dep
 			}
 		}
-		console.log( all );
+
+		console.log( allModules );
 	});
 
 	// watch js

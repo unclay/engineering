@@ -1,1 +1,0 @@
-define("qq/0.0.1/index", ["ee/0.0.1/index"], function(require, exports, module) {console.log(2123);});

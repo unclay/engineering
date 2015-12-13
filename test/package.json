@@ -13,5 +13,12 @@
 		"options": {
 			"keepBreaks": true
 		}
+	},
+	"applition": {
+		"js": {
+			"from": "js/index.js",
+			"to": "js/index.min.js",
+			"module": "js/modules.js"
+		}
 	}
 }

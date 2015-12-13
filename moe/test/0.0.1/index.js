@@ -1,1 +1,0 @@
-define("url/1.2.0/url-debug", ["qq/0.0.1/index", "ww/0.0.2/ww"], function(require, exports, module) {console.log(2123);});

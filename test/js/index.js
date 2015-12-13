@@ -1,5 +1,7 @@
-define('',[],function(require, exports, module){
-	var handlebarser = require("test/0.0.1/index");
-	var test = require('query-string/1.0.0/index');
-	require('./l.js');
+define(function(require, exports, module){
+	var user = require("loginBox/0.0.3/index");
+	var ui = require('ui/0.0.5/ui');
+	require('./engine.js');
+	require('../vue/vue.js');
+	console.log("start");
 })

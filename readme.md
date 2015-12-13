@@ -10,11 +10,12 @@
 + 动态block <?=B('我是一个模块')?>
 + 各专题根目录配置文件package.json
 + 通过配置自动打包css,js,sass等等
++ gulp help帮助命令
 
 ### package.json详解
 + name 专题名称
 + description 专题描述
-+ url 线上地址
++ url [线上地址, online地址, office地址]
 + api [各个api地址]
 
 ### gulp配置

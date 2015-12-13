@@ -8,6 +8,20 @@ var request = require('superagent');
 var cssmin = require('gulp-minify-css');
 var uglify = require('gulp-uglify');
 var concat = require('gulp-concat');
+var colors = require('colors');
+
+colors.setTheme({  
+    silly: 'rainbow',  
+    input: 'grey',  
+    verbose: 'cyan',  
+    prompt: 'red',  
+    info: 'green',  
+    data: 'blue',  
+    help: 'cyan',  
+    warn: 'yellow',  
+    debug: 'magenta',  
+    error: 'red'  
+});
 // gulp-minify-css options
 //   advanced: false,//类型：Boolean 默认：true [是否开启高级优化（合并选择器等）]
 //   compatibility: 'ie7',//类型：String 默认：''or'*' [启用兼容模式； 'ie7'：IE7兼容模式，'ie8'：IE8兼容模式，'*'：IE9+兼容模式]
@@ -22,8 +36,9 @@ var seajsCombo = require( 'gulp-seajs-combo' );
 
 // 兼容多系统，多版本node
 var CWD = process.env.PWD || CWD || process.cwd() || '';
+var root = getRoot();
 // 获取gulpfile根目录
-var getRoot = function(){
+function getRoot(){
 	try{
 		var root = CWD;
 		if( !root ){
@@ -39,7 +54,6 @@ var getRoot = function(){
 		console.error(err);
 	}
 }
-var root = getRoot();
 // block函数
 function B(name){
 	try {
@@ -319,29 +333,30 @@ module.exports = function(gulp){
 	gulp.task('js', function(){
 		var conf = require('./conf.json');
 		// 项目配置文件地址
-		var confUrl = path.join( CWD, 'package.json' );
-		// 项目配置文件内容
-		var _conf = fs.readFileSync( confUrl, 'utf-8' );
-		try{
-			_conf = !!_conf ? _conf : '{}';
-			_conf = JSON.parse(_conf);
+		try {
+			var _conf = require(CWD + '/package.json');
 		} catch(err){
-			console.error('package.json格式不对，' + err);
+			return console.log('[ERROR] 应用程序根目录下不能没有package.json文件'.error);
 		}
 		// 必须配置js压缩入口文件才能执行
 		if( !_conf.applition.js ){
-			return console.error('package.json必须配置application["js"]项');
+			return console.log('[ERROR] package.json没有配置压缩js的入口文件'.error);
 		}
+		var moduleDirs = conf.module || 'moe';
 		var jsConf = _conf.applition.js;
 		jsConf = jsConf || {};
-		jsConf.mainName = jsConf.from.match(/[^\/]+\.js/);
+		// 入口文件名
+		jsConf.mainName = !!jsConf.from ? jsConf.from.match(/[^\/]+\.js/) : '';
 		jsConf.mainName = !!jsConf.mainName ? jsConf.mainName[0] : '';
-		jsConf.mainToName = jsConf.to.match(/[^\/]+\.js/);
+		// 压缩文件名
+		jsConf.to = !!jsConf.to ? jsConf.to : jsConf.from.replace('.js', '.min.js')
+		jsConf.mainToName = !!jsConf.to ? jsConf.to.match(/[^\/]+\.js/) : '';
 		jsConf.mainToName = !!jsConf.mainToName ? jsConf.mainToName[0] : jsConf.mainName.replace('.js', '.min.js');
-		jsConf.mainModule = jsConf.module.match(/[^\/]+\.js/);
+		// 模块集合文件名
+		jsConf.mainModule = !!jsConf.module ? jsConf.module.match(/[^\/]+\.js/) : '';
 		jsConf.mainModule = !!jsConf.mainModule ? jsConf.mainModule[0] : 'modules.js';
 		if( !jsConf.mainName ){
-			return console.error('js的入口文件不能为空');
+			return console.log('[ERROR] js压缩入口文件名不能为空'.error);
 		}
 		// 最终打包路径数组
 		var allModules = [];
@@ -352,12 +367,13 @@ module.exports = function(gulp){
 			var name = eval(mainJsContent[i].replace('require','_require'));
 			allModules = allModules.concat(name);
 		}
+		// 引入依赖文件
 		function _require(path){
 			return [path].concat( _getModules(path) );
 		}
 		function _getModules(path){
 			try {
-				var path = root + '/moe/' + path + '.js';
+				var path = root + '/' + moduleDirs + '/' + path + '.js';
 				if( !fs.existsSync(path) ){
 					return [];
 				}
@@ -373,15 +389,11 @@ module.exports = function(gulp){
 				if( content.length <= 0 ){
 					return [];
 				}
-				// console.log( content );
-
+				// 一个文件可能存在多个define事件，循环提取子依赖和内部依赖
 				for( var i=1; i<content.length; i++ ){
 					if(!content[i]){
 						i--;
 					} else {
-						// console.log( content[i].substr(0, content[i].lastIndexOf(')') + 1 ) );
-						// console.log( eval('_define(' + content[i]) );
-						// console.log( '_define(' + content[i].substr(0, content[i].lastIndexOf(')') + 1 ) );
 						temp = eval('_define(' + content[i].substr(0, content[i].lastIndexOf(')') + 1 ));
 						if( temp.dep.length > 0 ) modules = modules.concat( temp.dep );
 						if( !!temp.name ) delModules.push( temp.name );
@@ -417,7 +429,7 @@ module.exports = function(gulp){
 
 		// 打包的文件数组转换成实际路径
 		for( var i=0; i<allModules.length; i++ ){
-			allModules[i] = allModules[i].indexOf('.') === 0 ? path.join(CWD, 'js', allModules[i]) : path.join(root, 'moe', allModules[i] + '.js');
+			allModules[i] = allModules[i].indexOf('.') === 0 ? path.join(CWD, 'js', allModules[i]) : path.join(root, moduleDirs, allModules[i] + '.js');
 		}
 		// 压缩入口文件
 		gulp.src(mainJs)
@@ -434,6 +446,26 @@ module.exports = function(gulp){
 
 	// watch js
 	gulp.task('wjs', function(){
-	    gulp.watch( CWD + "/js/index.js", ["js"]);
+		// 项目配置文件地址
+		try {
+			var _conf = require(CWD + '/package.json');
+		} catch(err){
+			return console.log('[ERROR] 应用程序根目录下不能没有package.json文件'.error);
+		}
+		// 必须配置js压缩入口文件才能执行
+		if( !_conf.applition.js ){
+			return console.log('[ERROR] package.json没有配置压缩js的入口文件'.error);
+		}
+		var jsConf = _conf.applition.js;
+		jsConf = jsConf || {};
+		var mainJs = path.join( CWD, jsConf.from );
+		var watch = [mainJs];
+		if( Object.prototype.toString.call(jsConf.watch) === '[object Array]' ){
+			for(var i=0; i<jsConf.watch.length; i++){
+				if( jsConf.watch[i] == jsConf.from ) continue;
+				watch.push( path.join( CWD, jsConf.watch[i]) );
+			}
+		}
+	    gulp.watch( watch, ["js"]);
 	});
 }

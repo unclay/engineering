@@ -4,4 +4,5 @@ define(function(require, exports, module){
 	require('./engine.js');
 	require('../vue/vue.js');
 	console.log("start");
+	console.log("end");
 })

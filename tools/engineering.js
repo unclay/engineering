@@ -119,37 +119,6 @@ module.exports = function(gulp){
 		pull();
 	});
 
-	gulp.task('css', function(){
-		// 项目样式文件目录
-		var cssDirs = path.join( CWD, 'css' );
-		// 项目配置文件地址
-		var confUrl = path.join( CWD, 'package.json' );
-		// 项目配置文件内容
-		var _conf = fs.readFileSync( confUrl, 'utf-8' );
-		try{
-			_conf = !!_conf ? _conf : '{}';
-			_conf = JSON.parse(_conf);
-		} catch(err){
-			console.error('package.json格式不对，' + err);
-		}
-		var minConf = {};
-		if( !!_conf.css && !!_conf.css.options ){
-			if( Object.prototype.toString.call(_conf.css.options) !== '[object Object]' ){
-				console.error('package.json.css.options must be Object');
-			} else {
-				minConf = _conf.css.options;
-			}
-		}
-		gulp.src(cssDirs + '/*.css')
-			.pipe(cssmin(minConf))
-			.pipe(rename('style.min.css'))
-			.pipe(gulp.dest(cssDirs));
-	});
-
-	gulp.task('wcss', function(){
-		gulp.watch( CWD + "/css/*.css", ["css"]);
-	});
-
 	gulp.task('sass', function(){
 		/* 编译风格模板
 		 *  - compressed：压缩后的css代码, 它是默认值
@@ -336,11 +305,11 @@ module.exports = function(gulp){
 		try {
 			var _conf = require(CWD + '/package.json');
 		} catch(err){
-			return console.log('[ERROR] 应用程序根目录下不能没有package.json文件'.error);
+			return console.log( ('[ERROR] ' + CWD + '/package.json not found').error );
 		}
 		// 必须配置js压缩入口文件才能执行
 		if( !_conf.applition.js ){
-			return console.log('[ERROR] package.json没有配置压缩js的入口文件'.error);
+			return console.log( ('[ERROR] package.json.application.js must exist, and must be the Object').error );
 		}
 		var moduleDirs = conf.module || 'moe';
 		var jsConf = _conf.applition.js;
@@ -356,7 +325,7 @@ module.exports = function(gulp){
 		jsConf.mainModule = !!jsConf.module ? jsConf.module.match(/[^\/]+\.js/) : '';
 		jsConf.mainModule = !!jsConf.mainModule ? jsConf.mainModule[0] : 'modules.js';
 		if( !jsConf.mainName ){
-			return console.log('[ERROR] js压缩入口文件名不能为空'.error);
+			return console.log('[ERROR] package.json.application.js.from must be a xxxx.js'.error);
 		}
 		// 最终打包路径数组
 		var allModules = [];
@@ -416,7 +385,7 @@ module.exports = function(gulp){
 				modules = modules.concat( subModules );
 				return modules;
 			} catch(err){
-				console.log('_getModules: ', err);
+				console.log( ('[ERROR] _getModules: ' + err).error );
 			}
 		}
 		// 提取define的name、dep
@@ -450,22 +419,82 @@ module.exports = function(gulp){
 		try {
 			var _conf = require(CWD + '/package.json');
 		} catch(err){
-			return console.log('[ERROR] 应用程序根目录下不能没有package.json文件'.error);
+			return console.log( ('[ERROR] ' + CWD + '/package.json not found').error );
 		}
 		// 必须配置js压缩入口文件才能执行
 		if( !_conf.applition.js ){
-			return console.log('[ERROR] package.json没有配置压缩js的入口文件'.error);
+			return console.log( ('[ERROR] package.json.application.js must exist, and must be the Object').error );
 		}
 		var jsConf = _conf.applition.js;
 		jsConf = jsConf || {};
 		var mainJs = path.join( CWD, jsConf.from );
 		var watch = [mainJs];
+		// 加载外部自定义的变更文件
 		if( Object.prototype.toString.call(jsConf.watch) === '[object Array]' ){
 			for(var i=0; i<jsConf.watch.length; i++){
 				if( jsConf.watch[i] == jsConf.from ) continue;
 				watch.push( path.join( CWD, jsConf.watch[i]) );
 			}
+		} else {
+			if( !!jsConf.watch ) console.log('[WARN] package.json.application.js.watch isn\'t Array'.warn);
 		}
 	    gulp.watch( watch, ["js"]);
+	});
+
+	// 压缩css
+	gulp.task('css', function(){
+		// 项目配置文件内容
+		try {
+			var _conf = require(CWD + '/package.json');
+		} catch(err){
+			return console.log( ('[ERROR] ' + CWD + '/package.json not found').error );
+		}
+		var cssOptions = {};
+		var cssName = 'style.min.css';
+		var cssPath = CWD + '/css';
+		var cssArr = [cssPath + '/style.css'];
+		// 存在配置时，提取配置
+		if( !!_conf.applition && !!_conf.applition.css ){
+			var cssConf = _conf.applition.css;
+			// 打包压缩配置参数
+			if( !!cssConf.options ){
+				if( Object.prototype.toString.call(cssConf.options) !== '[object Object]' ){
+					console.log('[WARN] package.json.css.options must be Object'.warn);
+				} else {
+					cssOptions = cssConf.options;
+				}
+			}
+			// 打包压缩的文件集合（Array）
+			if( !!cssConf.from && Object.prototype.toString.call(cssConf.from) === '[object Array]' ){
+				cssArr = [];
+				for( var i=0; i<cssConf.from.length; i++ ){
+					cssArr.push( path.join(CWD, cssConf.from[i]) );
+				}
+			}
+			// 压缩结果文件名
+			if( !!cssConf.to ){
+				cssConf.toName = !!cssConf.to ? cssConf.to.match(/[^\/]+\.css$/) : '';
+				cssName = !!cssConf.toName ? cssConf.toName[0] : cssName;
+				cssPath = path.join(CWD, cssConf.to).replace(/\/[^\/]+\.css$/, '') || cssPath;
+			}
+			// 调试日志
+			if( cssConf.debug === true ){
+				console.log( ('[DEBUG] 打包压缩文件数：' + cssArr.length + '个，包含：').debug );
+				for( var i=0; i<cssArr.length; i++ ){
+					console.log( ('[DEBUG]   ' + cssArr[i]).debug );
+				}
+				console.log( ('[DEBUG] 压缩配置： ' + JSON.stringify(cssOptions)).debug );
+				console.log( ('[DEBUG] 压缩结果文件：' + cssName).debug );
+				console.log( ('[DEBUG] 压缩结果目录：' + cssPath).debug );
+			}
+		}
+		gulp.src(cssArr)
+			.pipe(cssmin(cssOptions))
+			.pipe(concat(cssName))
+			.pipe(gulp.dest(cssPath));
+	});
+
+	gulp.task('wcss', function(){
+		gulp.watch( CWD + "/*/*.css", ["css"]);
 	});
 }

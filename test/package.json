@@ -20,9 +20,19 @@
 			"to": "js/index.min.js",
 			"module": "js/modules.js",
 			"watch": [
-				"js/index.js",
-				"js/engine.js"
+				"js/index.js"
 			]
+		},
+		"css": {
+			"options": {
+				"keepBreaks": true
+			},
+			"from": [
+				"css/style.css",
+				"css/test_1_1.css"
+			],
+			"to": "css/style.min.css",
+			"debug": true
 		}
 	}
 }

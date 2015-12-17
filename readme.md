@@ -38,6 +38,17 @@
 			"watch": [ // 监听变更文件
 				"js/index.js"
 			]
+		},
+		"css": { // 压缩打包css
+			"options": { // 压缩配置
+				"keepBreaks": true // 开启换行模式
+			},
+			"from": [ // 压缩文件集合
+				"css/style.css",
+				"css/test_1_1.css"
+			],
+			"to": "css/style.min.css", // 压缩结果文件
+			"debug": true // 设置为true时开启debug模式
 		}
 	}
 }
@@ -52,12 +63,28 @@ sudo npm install gulp --save-dev // 项目中安装gulp，为了项目有gulp执
 
 ### 功能介绍
 + 打包压缩js
-````
+	
+	````
 gulp js // 直接打包js，1.入口文件压缩 2.组件文件打包压缩
 gulp wjs // 监听并打包js
 ````
 配置参数包含四个
-	+ from js入口文件
+	+ from 入口文件是什么
+	+ to 压缩成什么文件
+	+ module 组件打包成什么文件，默认是modules.js
+	+ watch 监听变更js文件，默认是from参数这个文件
+
++ 打包压缩css
+	
+	````
+gulp css // 直接打包css
+gulp wcss // 监听并打包css, 监听 项目/\*/\*.css文件
+````
+配置参数包含四个
+	+ options @{Json} 压缩配置
+	+ from @{Array} 打包压缩集合
+	+ to @{String} 压缩成什么文件
+	+ debug @{Boolean} debug模式（true or false）
  
 
 ### 思路

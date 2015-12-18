@@ -71,8 +71,9 @@ gulp wjs // 监听并打包js
 配置参数包含四个
 	+ from 入口文件是什么
 	+ to 压缩成什么文件
-	+ module 组件打包成什么文件，默认是modules.js
+	+ module 组件打包成什么文件，不存在时自动打包进入口文件中
 	+ watch 监听变更js文件，默认是from参数这个文件
+	+ debug @{Boolean} debug模式（true or false）
 
 + 打包压缩css
 	

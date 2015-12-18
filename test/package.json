@@ -18,10 +18,11 @@
 		"js": {
 			"from": "js/index.js",
 			"to": "js/index.min.js",
-			"module": "js/modules.js",
+			"module": "",
 			"watch": [
 				"js/index.js"
-			]
+			],
+			"debug": true
 		},
 		"css": {
 			"options": {

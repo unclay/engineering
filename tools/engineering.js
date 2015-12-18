@@ -323,7 +323,7 @@ module.exports = function(gulp){
 		jsConf.mainToName = !!jsConf.mainToName ? jsConf.mainToName[0] : jsConf.mainName.replace('.js', '.min.js');
 		// 模块集合文件名
 		jsConf.mainModule = !!jsConf.module ? jsConf.module.match(/[^\/]+\.js/) : '';
-		jsConf.mainModule = !!jsConf.mainModule ? jsConf.mainModule[0] : 'modules.js';
+		jsConf.mainModule = !!jsConf.mainModule ? jsConf.mainModule[0] : '';
 		if( !jsConf.mainName ){
 			return console.log('[ERROR] package.json.application.js.from must be a xxxx.js'.error);
 		}
@@ -400,17 +400,35 @@ module.exports = function(gulp){
 		for( var i=0; i<allModules.length; i++ ){
 			allModules[i] = allModules[i].indexOf('.') === 0 ? path.join(CWD, 'js', allModules[i]) : path.join(root, moduleDirs, allModules[i] + '.js');
 		}
+		// 调试日志
+		if( jsConf.debug === true ){
+			console.log( ('[DEBUG] 打包压缩文件数：' + allModules.length + '个，包含：').debug );
+			for( var i=0; i<allModules.length; i++ ){
+				console.log( ('[DEBUG]   ' + allModules[i]).debug );
+			}
+			if( jsConf.mainModule ){
+				console.log( ('[DEBUG] 压缩结果-组件文件：' + jsConf.mainModule).debug );
+				console.log( ('[DEBUG] 压缩结果-组件目录：' + path.join(CWD, jsConf.module).replace(/\/[^\/]+\.js$/, '')).debug );
+			}
+			console.log( ('[DEBUG] 压缩结果-入口文件：' + jsConf.mainToName).debug );
+			console.log( ('[DEBUG] 压缩结果-入口目录：' + path.join(CWD, jsConf.to).replace(/\/[^\/]+\.js$/, '')).debug );
+		}
+
+		if( !!jsConf.mainModule ){
+			// 压缩打包组件文件
+			gulp.src(allModules)
+				.pipe(uglify())
+				.pipe(concat(jsConf.mainModule))
+				.pipe(gulp.dest( path.join(CWD, jsConf.module).replace(/\/[^\/]+\.js$/, '') ));
+		} else {
+			// 不存在组件集合独立文件时，打包进入口文件
+			mainJs = allModules.concat([mainJs]);
+		}
 		// 压缩入口文件
 		gulp.src(mainJs)
 			.pipe(uglify())
-			.pipe(rename(jsConf.mainToName))
+			.pipe(concat(jsConf.mainToName))
 			.pipe(gulp.dest( path.join(CWD, jsConf.to).replace(/\/[^\/]+\.js$/, '') ));
-		// 压缩打包组件文件
-		gulp.src(allModules)
-			.pipe(uglify())
-			.pipe(concat(jsConf.mainModule))
-			.pipe(gulp.dest( path.join(CWD, jsConf.module).replace(/\/[^\/]+\.js$/, '') ));
-
 	});
 
 	// watch js

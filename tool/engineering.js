@@ -15,7 +15,7 @@ colors.setTheme({
     input: 'grey',  
     verbose: 'cyan',  
     prompt: 'red',  
-    info: 'green',  
+    info: 'green',
     data: 'blue',  
     help: 'cyan',  
     warn: 'yellow',  
@@ -119,7 +119,7 @@ module.exports = function(gulp){
 		pull();
 	});
 
-	gulp.task('sass', function(){
+	gulp.task('sass1', function(){
 		/* 编译风格模板
 		 *  - compressed：压缩后的css代码, 它是默认值
 		 *  - nested：嵌套缩进的css代码
@@ -181,6 +181,7 @@ module.exports = function(gulp){
 		}
 		// 多文件编译
 		for( var i=0; i<list.length; i++ ){
+			console.log( list[i].from );
 			gulp.src( list[i].from )
 				.pipe(sass({
 	                outputStyle: list[i].outputStyle
@@ -191,7 +192,7 @@ module.exports = function(gulp){
 	});
 
 	// watch sass
-	gulp.task('wsass', function(){
+	gulp.task('wsass1', function(){
 	    gulp.watch( CWD + "/*/*.scss", ["sass"]);
 	});
 
@@ -300,6 +301,13 @@ module.exports = function(gulp){
 	});
 
 	gulp.task('js', function(){
+		/* 压缩js配置
+		 *  - from   @{String}  入口文件是什么
+		 *  - to     @{String}  压缩成什么文件
+		 *  - module @{String}  组件打包成什么文件，不存在时自动打包进入口文件中
+		 *  - watch  @{Array}   监听变更js文件，默认是from参数这个文件
+		 *  - debug  @{Boolean} debug模式（true or false）
+		 */
 		var conf = require('./conf.json');
 		// 项目配置文件地址
 		try {
@@ -461,7 +469,12 @@ module.exports = function(gulp){
 
 	// 压缩css
 	gulp.task('css', function(){
-		// 项目配置文件内容
+		/* 压缩css配置
+		 *  - options @{Json}    压缩配置
+		 *  - from    @{Array}   打包压缩集合
+		 *  - to      @{String}  压缩成什么文件
+		 *  - debug   @{Boolean} debug模式（true or false）
+		 */
 		try {
 			var _conf = require(CWD + '/package.json');
 		} catch(err){
@@ -514,5 +527,95 @@ module.exports = function(gulp){
 
 	gulp.task('wcss', function(){
 		gulp.watch( CWD + "/*/*.css", ["css"]);
+	});
+
+	gulp.task('sass', function(){
+		/* 编译风格模板
+		 *  - compressed：压缩后的css代码, 它是默认值
+		 *  - nested：嵌套缩进的css代码
+		 *  - expanded：没有缩进的、扩展的css代码
+		 *  - compact：简洁格式的css代码
+		 *
+		 * 配置方式： 1. 直接通过以上四种类型字符来配置
+		 *           2. 通过风格模板索引来配置配置
+		 */
+		var outputStyleTemplate = ['compressed', 'nested', 'expanded', 'compact'];
+		var outputStyle = outputStyleTemplate[0];
+		// 项目样式文件目录
+		var cssDirs = path.join( CWD, 'css' );
+		// 项目配置文件地址
+		try {
+			var _conf = require(CWD + '/package.json');
+		} catch(err){
+			return console.log( ('[ERROR] ' + CWD + '/package.json not found').error );
+		}
+		// 设置默认编译配置
+		var list = [{
+			'from': path.join(CWD, 'css/style.scss'),
+			'to': path.join(CWD, 'css/style.css'),
+			'name': 'style.css',
+			'dirs': CWD + '/css',
+			'outputStyle': outputStyleTemplate[0]
+		}];
+		// 对外部编译风格进行校正处理
+		var getOutputStyle = function(outputStyle){
+			if( typeof outputStyle === 'number' ){
+				outputStyle = outputStyleTemplate[ outputStyle ] || outputStyleTemplate[0];
+			} else if( typeof outputStyle === 'string' && !!outputStyle.match( new RegExp('^' + outputStyleTemplate.join('|') + '$', 'gi') ) ){
+				outputStyle = outputStyle;
+			} else {
+				console.warn('[warn] outputStyle("'+ outputStyle +'") value must be a number or string!');
+				outputStyle = outputStyleTemplate[0];
+			}
+			return outputStyle;
+		}
+		// 提取正确的编译配置
+		if( !!_conf.applition && _conf.applition.sass ){
+			var sass = _conf.applition.sass;
+			if( !!sass && sass.length > 0 ){
+				for( var i=0; i<_conf.sass.length; i++ ){
+					if( !!_conf.sass[i].from && !!_conf.sass[i].to && !!_conf.sass[i].outputStyle ){
+						if( _conf.sass[i].from.match(/\.scss$/gi) && _conf.sass[i].to.match(/\.css$/gi) ){
+							if( i == 0 ) list = []; // 有正确的编译风格时，清除默认配置
+							var name = !!jsConf.from ? jsConf.from.match(/[^\/]+\.js/) : '';
+							name = !!name ? name[0] : '';
+							list.push({
+								'from': path.join(CWD, path.normalize(_conf.sass[i].from).replace(CWD, '') ),
+								'to': _conf.sass[i].to,
+								'name': name,
+								'dirs': path.join(CWD, _conf.sass[i].to).replace(/\/[^\/]+\.css$/, ''),
+								'outputStyle': getOutputStyle( _conf.sass[i].outputStyle )
+							});
+						} else {
+							// 编译源文件和目标文件必须是scss和css
+							console.error('from: ("' + _conf.sass[i].from + '") must be *.scss, to: ("' + _conf.sass[i].to + '") must be *.css');
+						}
+					}
+				}
+			}
+			
+		}
+		if( _conf.debug === true ){
+			for( var i=0; i<list.length; i++ ){
+				console.log( ('[DEBUG] sass来源(' + i + '): ' + list[i].from).debug );
+				console.log( ('[DEBUG] sass配置(' + i + '): ' + list[i].outputStyle).debug );
+				console.log( ('[DEBUG] sass结果文件(' + i + '): ' + list[i].name).debug );
+				console.log( ('[DEBUG] sass结果目录(' + i + '): ' + list[i].dirs).debug );
+			}
+		}
+		// 多文件编译
+		for( var i=0; i<list.length; i++ ){
+			gulp.src( list[i].from )
+				.pipe(sass({
+	                outputStyle: list[i].outputStyle
+	            }).on("error", sass.logError))
+	            .pipe(rename(list[i].name))
+				.pipe(gulp.dest(list[i].dirs));
+		}
+	});
+
+	// watch sass
+	gulp.task('wsass', function(){
+	    gulp.watch( CWD + "/*/*.scss", ["sass"]);
 	});
 }

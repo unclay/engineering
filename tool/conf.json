@@ -1,0 +1,20 @@
+{
+	"cms": {
+		"url": "http://common.bozhong.com/cms/content.html",
+		"page": {},
+		"block": [
+			"5476d5f3a3c3b134588b456a",
+			"5476d68aa3c3b1c7578b4569",
+			"5476d726a3c3b14d588b457e",
+			"54783a46a3c3b1a21d8b456f"
+		]
+	},
+	"domain": {
+		"SOURCE_SEEDIT_COM": "http://source.office.bzdev.net",
+		"M_SEEDIT_COM": "http://bbs.office.bzdev.net",
+		"BBS_SEEDIT_COM": "http://bbs.office.bzdev.net",
+		"HUODONG_SEEDIT_COM": "http://huodong.office.bzdev.net",
+		"STATIC_SEEDIT_COM": "http://static.office.bzdev.net",
+		"SOURCE_TEST_COM": "http://source.test.com"
+	}
+}

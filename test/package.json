@@ -4,16 +4,6 @@
 		"WWW_SITE_COM": "http://www.unclay.com",
 		"SOURCE_SITE_COM": "http://source.unclay.com"
 	},
-	"sass": [{
-		"from": "sass/test_1_1.scss",
-		"to": "css/style.css",
-		"outputStyle": 3
-	}],
-	"css": {
-		"options": {
-			"keepBreaks": true
-		}
-	},
 	"applition": {
 		"js": {
 			"from": "js/index.js",
@@ -34,6 +24,14 @@
 			],
 			"to": "css/style.min.css",
 			"debug": true
+		},
+		"sass": {
+			"debug": true,
+			"list": [{
+				"from": "css/style.scss",
+				"to": "css/style.css",
+				"outputStyle": 3
+			}]
 		}
 	}
 }

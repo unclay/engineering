@@ -69,11 +69,11 @@ gulp js // 直接打包js，1.入口文件压缩 2.组件文件打包压缩
 gulp wjs // 监听并打包js
 ````
 配置参数包含四个
-	+ from 入口文件是什么
-	+ to 压缩成什么文件
-	+ module 组件打包成什么文件，不存在时自动打包进入口文件中
-	+ watch 监听变更js文件，默认是from参数这个文件
-	+ debug @{Boolean} debug模式（true or false）
+	+ from   @{String}  入口文件是什么
+	+ to     @{String}  压缩成什么文件
+	+ module @{String}  组件打包成什么文件，不存在时自动打包进入口文件中
+	+ watch  @{Array}   监听变更js文件，默认是from参数这个文件
+	+ debug  @{Boolean} debug模式（true or false）
 
 + 打包压缩css
 	
@@ -82,10 +82,10 @@ gulp css // 直接打包css
 gulp wcss // 监听并打包css, 监听 项目/\*/\*.css文件
 ````
 配置参数包含四个
-	+ options @{Json} 压缩配置
-	+ from @{Array} 打包压缩集合
-	+ to @{String} 压缩成什么文件
-	+ debug @{Boolean} debug模式（true or false）
+	+ options @{Json}    压缩配置
+	+ from    @{Array}   打包压缩集合
+	+ to      @{String}  压缩成什么文件
+	+ debug   @{Boolean} debug模式（true or false）
  
 
 ### 思路

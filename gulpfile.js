@@ -1,8 +1,8 @@
 'use strict';
 var gulp = require('gulp');
 
-require('./tools/help')(gulp);
-require('./tools/engineering')(gulp);
+require('./tool/help')(gulp);
+require('./tool/engineering')(gulp);
 
 
 gulp.task('default', function(){

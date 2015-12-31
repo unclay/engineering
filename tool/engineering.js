@@ -35,7 +35,7 @@ var seajsCombo = require( 'gulp-seajs-combo' );
 // var gulpSeajs = require('gulp-seajs');
 
 // 兼容多系统，多版本node
-var CWD = process.env.PWD || CWD || process.cwd() || '';
+var CWD = process.env.INIT_CWD || process.env.PWD || process.cwd() || '';
 var root = getRoot();
 // 获取gulpfile根目录
 function getRoot(){
@@ -301,13 +301,6 @@ module.exports = function(gulp){
 	});
 
 	gulp.task('js', function(){
-		/* 压缩js配置
-		 *  - from   @{String}  入口文件是什么
-		 *  - to     @{String}  压缩成什么文件
-		 *  - module @{String}  组件打包成什么文件，不存在时自动打包进入口文件中
-		 *  - watch  @{Array}   监听变更js文件，默认是from参数这个文件
-		 *  - debug  @{Boolean} debug模式（true or false）
-		 */
 		var conf = require('./conf.json');
 		// 项目配置文件地址
 		try {
@@ -329,6 +322,7 @@ module.exports = function(gulp){
 		jsConf.to = !!jsConf.to ? jsConf.to : jsConf.from.replace('.js', '.min.js')
 		jsConf.mainToName = !!jsConf.to ? jsConf.to.match(/[^\/]+\.js/) : '';
 		jsConf.mainToName = !!jsConf.mainToName ? jsConf.mainToName[0] : jsConf.mainName.replace('.js', '.min.js');
+		console.log( jsConf.mainToName );
 		// 模块集合文件名
 		jsConf.mainModule = !!jsConf.module ? jsConf.module.match(/[^\/]+\.js/) : '';
 		jsConf.mainModule = !!jsConf.mainModule ? jsConf.mainModule[0] : '';
@@ -371,7 +365,12 @@ module.exports = function(gulp){
 					if(!content[i]){
 						i--;
 					} else {
-						temp = eval('_define(' + content[i].substr(0, content[i].lastIndexOf(')') + 1 ));
+						var _item = '_define(' + content[i].substr(0, content[i].indexOf('function')) + '"")';
+						// console.log( _item );
+						// if( _item.length < 15 ){
+						// 	console.log( content[i] );
+						// }
+						temp = eval(_item);
 						if( temp.dep.length > 0 ) modules = modules.concat( temp.dep );
 						if( !!temp.name ) delModules.push( temp.name );
 					}
@@ -393,21 +392,31 @@ module.exports = function(gulp){
 				modules = modules.concat( subModules );
 				return modules;
 			} catch(err){
+
 				console.log( ('[ERROR] _getModules: ' + err).error );
 			}
 		}
 		// 提取define的name、dep
 		function _define(name, dep){
 			return {
-				name: name,
-				dep: dep
+				name: name || '',
+				dep: dep || []
 			}
 		}
-
+		// 剔除重复文件及微信文件
+		var oneAllModules = {};
+		for( var i=0; i<allModules.length; i++ ){
+			if( allModules[i].indexOf("res.wx.qq.com") < 0 ) oneAllModules[allModules[i]] = true;
+		}
+		allModules = [];
+		for( var i in oneAllModules ){
+			allModules.push( i );
+		}
 		// 打包的文件数组转换成实际路径
 		for( var i=0; i<allModules.length; i++ ){
 			allModules[i] = allModules[i].indexOf('.') === 0 ? path.join(CWD, 'js', allModules[i]) : path.join(root, moduleDirs, allModules[i] + '.js');
 		}
+		
 		// 调试日志
 		if( jsConf.debug === true ){
 			console.log( ('[DEBUG] 打包压缩文件数：' + allModules.length + '个，包含：').debug );
@@ -416,10 +425,10 @@ module.exports = function(gulp){
 			}
 			if( jsConf.mainModule ){
 				console.log( ('[DEBUG] 压缩结果-组件文件：' + jsConf.mainModule).debug );
-				console.log( ('[DEBUG] 压缩结果-组件目录：' + path.join(CWD, jsConf.module).replace(/\/[^\/]+\.js$/, '')).debug );
+				console.log( ('[DEBUG] 压缩结果-组件目录：' + path.join(CWD, jsConf.module.replace('\\'+jsConf.mainModule, '').replace('/'+jsConf.mainModule, '') )).debug );
 			}
 			console.log( ('[DEBUG] 压缩结果-入口文件：' + jsConf.mainToName).debug );
-			console.log( ('[DEBUG] 压缩结果-入口目录：' + path.join(CWD, jsConf.to).replace(/\/[^\/]+\.js$/, '')).debug );
+			console.log( ('[DEBUG] 压缩结果-入口目录：' + path.join(CWD, jsConf.to.replace('\\'+jsConf.mainToName, '').replace('/'+jsConf.mainToName, '') )).debug );
 		}
 
 		if( !!jsConf.mainModule ){
@@ -427,7 +436,7 @@ module.exports = function(gulp){
 			gulp.src(allModules)
 				.pipe(uglify())
 				.pipe(concat(jsConf.mainModule))
-				.pipe(gulp.dest( path.join(CWD, jsConf.module).replace(/\/[^\/]+\.js$/, '') ));
+				.pipe(gulp.dest( path.join(CWD, jsConf.module.replace('\\'+jsConf.mainModule, '').replace('/'+jsConf.mainModule, '') ) ));
 		} else {
 			// 不存在组件集合独立文件时，打包进入口文件
 			mainJs = allModules.concat([mainJs]);
@@ -436,7 +445,7 @@ module.exports = function(gulp){
 		gulp.src(mainJs)
 			.pipe(uglify())
 			.pipe(concat(jsConf.mainToName))
-			.pipe(gulp.dest( path.join(CWD, jsConf.to).replace(/\/[^\/]+\.js$/, '') ));
+			.pipe(gulp.dest( path.join(CWD, jsConf.to.replace('\\'+jsConf.mainToName, '').replace('/'+jsConf.mainToName, '') ) ));
 	});
 
 	// watch js
